@@ -156,8 +156,7 @@ int bitXor(int x, int y) {
  *   Rating: 1
  */
 int tmin(void) {
-
-  return 2;
+  return 1 << 31;
 
 }
 //2
@@ -169,7 +168,7 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  return 2;
+  return !(~((x+1)^x)+!(x+1));
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -180,7 +179,14 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return 2;
+  int flag = x & 170;
+  x = x >> 8;
+  flag = flag & ( x & 170 );
+  x = x >> 8;
+  flag = flag & ( x & 170 );
+  x = x >> 8;
+  flag = flag & ( x & 170 );
+  return !(flag ^ 170);
 }
 /* 
  * negate - return -x 
@@ -190,7 +196,7 @@ int allOddBits(int x) {
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+  return ~x + 1;
 }
 //3
 /* 
@@ -203,7 +209,8 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+  x = x >> 1;
+  return !(x^24)+!(x^25)+!(x^26)+!(x^27)+!(x^28);
 }
 /* 
  * conditional - same as x ? y : z 
@@ -213,7 +220,8 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  int sign = !(!x);
+  return (y & (~sign + 1)) | (z &(~(~sign + 1)));
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -223,7 +231,8 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  int sum = y + (~x + 1);
+  return !(sum >> 31);
 }
 //4
 /* 
@@ -235,7 +244,13 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+  // -x = x
+  int hrex = ((~x + 1) >> 31) & 1;
+  int hx = (x >> 31) & 1;
+  int sign = hrex | hx;
+  int outt = ~sign + 1;
+  return outt + 1;
+
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -250,7 +265,41 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+  // Declare
+  int sign, normalizz, sign16, sign8, sign4, sign2, sign1, sol ,sol2, sssign, ssssign;
+  // Find Highest
+  sign =  !(x >> 31);
+  normalizz = (x & (~sign + 1)) | ((~x) &(~(~sign + 1)));
+  // Bisection Method
+  sign16 = !(!(normalizz >> 16)) << 4;
+  normalizz = normalizz >> sign16;
+  sign8 = !(!(normalizz >> 8)) << 3;
+  normalizz = normalizz >> sign8;
+  sign4 = !(!(normalizz >> 4)) << 2;
+  normalizz = normalizz >> sign4;
+  sign2 = !(!(normalizz >> 2)) << 1;
+  normalizz = normalizz >> sign2;
+  sign1 = !(!(normalizz >> 1));
+  normalizz = normalizz >> sign1;
+  sol = sign16 + sign8 + sign4 + sign2 + sign1 + normalizz + 1;
+  
+  /*
+  // Exception of MAX_NUM
+  int err1 = !!(normalizz ^ (1 << 31));
+  int err2 = !!(~(normalizz ^ (1 << 31)));
+  int cond = err1 & err2;
+  int ssign =!(!cond);
+  int sol1 = (sol & (~ssign + 1)) | (32 &(~(~ssign + 1)));
+  */
+
+  // Exception of 0
+  sssign = !x;
+  sol2 =  (1 & (~sssign + 1)) | (sol &(~(~sssign + 1)));
+
+  // Exception of -1
+  ssssign = !(x+1);
+  return (1 & (~ssssign + 1)) | (sol2 &(~(~ssssign + 1)));
+
 }
 //float
 /* 
@@ -265,7 +314,22 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+  const unsigned getlog = 0x7f800000;
+  const unsigned getrest = 0x807fffff;
+  const unsigned gettail = 0x007fffff;
+  unsigned test = (uf & getlog) >> 23;
+  unsigned tail = (uf & gettail);
+  if (test <= 254 && test >= 1){
+    test = test + 1;
+    return (uf & getrest) + (test << 23);
+  }
+  else if (test == 0){
+    tail = tail << 1;
+    return ((uf >> 23) << 23) + tail;
+  }
+  else {
+    return uf;
+  }
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -280,7 +344,39 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 2;
+  const unsigned getlog = 0x7f800000;
+  const unsigned gethat = 0x80000000;
+  const unsigned gettail = 0x007fffff;
+  unsigned hat = (uf & gethat) >> 31;
+  unsigned log = (uf & getlog) >> 23;
+  unsigned tail = (uf & gettail);
+  unsigned newtail = 0;
+  tail = tail + 0x00800000;
+  if (uf == 0 || uf == 0x80000000){
+    return 0x00000000u;
+  }
+  if (log <= 181 && log > 150){
+    newtail = tail << (log - 150);
+  }
+  else if (log == 150){
+    newtail = tail;
+  }
+  else if (log < 150 && log >= 119){
+    newtail = tail >> (150 - log);
+  }
+  else if (log <= 118 && log >= 0){
+    newtail =  0x00000000u;
+  }
+  else{
+      return 0x80000000u;
+  }
+
+  if (hat == 0){
+    return newtail;
+  }
+  else{
+    return ~newtail + 1;
+  }  
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
