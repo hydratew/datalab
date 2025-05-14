@@ -392,5 +392,13 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+  if (x <= 127 && x >= -126){
+    return ((x + 127) << 23);
+  }
+  else if (x > 127){
+    return 255 << 23;
+  }
+  else {
+    return 0;
+  }
 }
